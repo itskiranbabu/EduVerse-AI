@@ -1,15 +1,28 @@
 
 import React, { useState, useEffect } from 'react';
+import { useApp } from '../App';
 import { DataService } from '../services/dataService';
-import { Task, TaskStatus } from '../types';
+import { Task, TaskStatus, TaskType, UserRole } from '../types';
 import { GeminiService } from '../services/geminiService';
-import { CheckCircle2, Circle, Clock, Bot, ChevronRight, Loader2, BookOpen } from 'lucide-react';
+import { CheckCircle2, Circle, Clock, Bot, ChevronRight, Loader2, BookOpen, Plus, X } from 'lucide-react';
 
 const Homework = () => {
+  const { currentUser } = useApp();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [hint, setHint] = useState<string | null>(null);
   const [loadingHint, setLoadingHint] = useState(false);
+  
+  // Teacher Mode State
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [newTask, setNewTask] = useState({
+    title: '',
+    subject: 'Mathematics',
+    type: TaskType.HOMEWORK,
+    dueDate: '',
+    description: '',
+    estimatedTimeMinutes: 30
+  });
 
   useEffect(() => {
     setTasks(DataService.getTasks());
@@ -42,15 +55,54 @@ const Homework = () => {
     }
   };
 
+  const handleCreateTask = (e: React.FormEvent) => {
+    e.preventDefault();
+    const task: Task = {
+      id: Date.now().toString(),
+      title: newTask.title,
+      subject: newTask.subject,
+      type: newTask.type,
+      dueDate: new Date(newTask.dueDate),
+      description: newTask.description,
+      status: TaskStatus.TODO,
+      estimatedTimeMinutes: newTask.estimatedTimeMinutes
+    };
+
+    DataService.addTask(task);
+    setTasks(prev => [...prev, task]);
+    setShowAddModal(false);
+    setNewTask({
+        title: '',
+        subject: 'Mathematics',
+        type: TaskType.HOMEWORK,
+        dueDate: '',
+        description: '',
+        estimatedTimeMinutes: 30
+    });
+  };
+
+  const isTeacher = currentUser.role === UserRole.TEACHER;
+
   return (
-    <div className="h-[calc(100vh-8rem)] flex flex-col md:flex-row gap-6">
+    <div className="h-[calc(100vh-8rem)] flex flex-col md:flex-row gap-6 relative">
       {/* Task List */}
       <div className="flex-1 bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden flex flex-col">
         <div className="p-4 border-b border-slate-100 bg-slate-50 flex justify-between items-center">
           <h2 className="font-bold text-slate-800">Assignments</h2>
-          <span className="text-xs font-medium px-2 py-1 bg-white border border-slate-200 rounded-md text-slate-500">
-            {tasks.filter(t => t.status !== TaskStatus.COMPLETED).length} Pending
-          </span>
+          <div className="flex items-center gap-2">
+             <span className="text-xs font-medium px-2 py-1 bg-white border border-slate-200 rounded-md text-slate-500">
+               {tasks.filter(t => t.status !== TaskStatus.COMPLETED).length} Pending
+             </span>
+             {isTeacher && (
+                <button 
+                  onClick={() => setShowAddModal(true)}
+                  className="bg-indigo-600 text-white p-1.5 rounded-md hover:bg-indigo-700 transition-colors"
+                  title="Assign Homework"
+                >
+                  <Plus size={16} />
+                </button>
+             )}
+          </div>
         </div>
         <div className="flex-1 overflow-y-auto p-2 space-y-2">
            {tasks.map(task => (
@@ -149,6 +201,75 @@ const Homework = () => {
            </div>
          )}
       </div>
+
+      {/* Teacher: Create Assignment Modal */}
+      {showAddModal && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+           <div className="bg-white rounded-2xl w-full max-w-lg p-6 shadow-xl animate-in zoom-in-95 duration-200">
+              <div className="flex justify-between items-center mb-4">
+                 <h2 className="text-xl font-bold text-slate-800">Assign Homework</h2>
+                 <button onClick={() => setShowAddModal(false)} className="text-slate-400 hover:text-slate-600"><X size={24} /></button>
+              </div>
+              <form onSubmit={handleCreateTask} className="space-y-4">
+                 <div>
+                    <label className="block text-xs font-semibold text-slate-500 uppercase mb-1">Title</label>
+                    <input 
+                      type="text" 
+                      required
+                      value={newTask.title}
+                      onChange={(e) => setNewTask({...newTask, title: e.target.value})}
+                      className="w-full border border-slate-200 rounded-lg p-2.5 text-sm outline-none focus:ring-2 focus:ring-indigo-500"
+                      placeholder="e.g. Chapter 5 Review"
+                    />
+                 </div>
+                 
+                 <div className="grid grid-cols-2 gap-4">
+                    <div>
+                       <label className="block text-xs font-semibold text-slate-500 uppercase mb-1">Subject</label>
+                       <select 
+                         value={newTask.subject}
+                         onChange={(e) => setNewTask({...newTask, subject: e.target.value})}
+                         className="w-full border border-slate-200 rounded-lg p-2.5 text-sm outline-none"
+                       >
+                         <option value="Mathematics">Mathematics</option>
+                         <option value="Science">Science</option>
+                         <option value="History">History</option>
+                         <option value="English">English</option>
+                         <option value="Physics">Physics</option>
+                         <option value="Chemistry">Chemistry</option>
+                       </select>
+                    </div>
+                    <div>
+                       <label className="block text-xs font-semibold text-slate-500 uppercase mb-1">Due Date</label>
+                       <input 
+                         type="date" 
+                         required
+                         value={newTask.dueDate}
+                         onChange={(e) => setNewTask({...newTask, dueDate: e.target.value})}
+                         className="w-full border border-slate-200 rounded-lg p-2.5 text-sm outline-none"
+                       />
+                    </div>
+                 </div>
+
+                 <div>
+                    <label className="block text-xs font-semibold text-slate-500 uppercase mb-1">Instructions</label>
+                    <textarea 
+                      required
+                      rows={3}
+                      value={newTask.description}
+                      onChange={(e) => setNewTask({...newTask, description: e.target.value})}
+                      className="w-full border border-slate-200 rounded-lg p-2.5 text-sm outline-none focus:ring-2 focus:ring-indigo-500"
+                      placeholder="Detailed instructions for the student..."
+                    ></textarea>
+                 </div>
+
+                 <button type="submit" className="w-full bg-indigo-600 text-white font-bold py-3 rounded-xl hover:bg-indigo-700 transition-colors">
+                    Assign Task
+                 </button>
+              </form>
+           </div>
+        </div>
+      )}
     </div>
   );
 };

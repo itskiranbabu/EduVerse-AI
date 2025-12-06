@@ -2,8 +2,8 @@
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../App';
 import { MOCK_USERS, MOCK_CONVERSATIONS, MOCK_ANNOUNCEMENTS, DataService } from '../services/dataService';
-import { Message, Conversation, Announcement } from '../types';
-import { Search, Bell, Mail, Send, CheckCheck, Tag, AlertCircle, User as UserIcon } from 'lucide-react';
+import { Message, Conversation, Announcement, UserRole } from '../types';
+import { Search, Bell, Mail, Send, CheckCheck, Tag, AlertCircle, User as UserIcon, Plus, X } from 'lucide-react';
 
 const Messages = () => {
   const { currentUser } = useApp();
@@ -11,6 +11,16 @@ const Messages = () => {
   const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
   const [inputMessage, setInputMessage] = useState('');
   const [messages, setMessages] = useState<Message[]>([]);
+  
+  // Announcements State
+  const [announcements, setAnnouncements] = useState<Announcement[]>([]);
+  const [showAnnounceModal, setShowAnnounceModal] = useState(false);
+  const [newAnnouncement, setNewAnnouncement] = useState({
+    title: '',
+    content: '',
+    priority: 'NORMAL' as 'NORMAL' | 'HIGH',
+    tags: ''
+  });
 
   // Helper to get user details
   const getUser = (id: string) => MOCK_USERS.find(u => u.id === id);
@@ -18,6 +28,7 @@ const Messages = () => {
   const activeConversation = selectedConversationId ? MOCK_CONVERSATIONS.find(c => c.id === selectedConversationId) : null;
 
   useEffect(() => {
+    setAnnouncements(DataService.getAnnouncements());
     if (selectedConversationId) {
       setMessages(DataService.getMessages(selectedConversationId));
     }
@@ -39,8 +50,28 @@ const Messages = () => {
     setInputMessage('');
   };
 
+  const handlePostAnnouncement = (e: React.FormEvent) => {
+    e.preventDefault();
+    const announcement: Announcement = {
+      id: Date.now().toString(),
+      title: newAnnouncement.title,
+      content: newAnnouncement.content,
+      author: currentUser.name,
+      date: new Date(),
+      priority: newAnnouncement.priority,
+      tags: newAnnouncement.tags.split(',').map(t => t.trim()).filter(t => t)
+    };
+
+    DataService.addAnnouncement(announcement);
+    setAnnouncements(prev => [announcement, ...prev]);
+    setShowAnnounceModal(false);
+    setNewAnnouncement({ title: '', content: '', priority: 'NORMAL', tags: '' });
+  };
+
+  const isTeacher = currentUser.role === UserRole.TEACHER;
+
   return (
-    <div className="h-[calc(100vh-8rem)] bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden flex">
+    <div className="h-[calc(100vh-8rem)] bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden flex relative">
       {/* Sidebar List */}
       <div className="w-full md:w-80 border-r border-slate-200 flex flex-col bg-slate-50">
         <div className="p-4 border-b border-slate-200">
@@ -97,7 +128,7 @@ const Messages = () => {
              </div>
            ) : (
              <div className="divide-y divide-slate-100">
-                {MOCK_ANNOUNCEMENTS.map(ann => (
+                {announcements.map(ann => (
                   <div key={ann.id} className="p-4 hover:bg-white cursor-pointer transition-colors group">
                      <div className="flex justify-between items-start mb-1">
                         <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${ann.priority === 'HIGH' ? 'bg-rose-100 text-rose-600' : 'bg-blue-100 text-blue-600'}`}>
@@ -184,10 +215,21 @@ const Messages = () => {
              </div>
            )
         ) : (
-          <div className="p-8 max-w-2xl mx-auto w-full overflow-y-auto">
-             <h2 className="text-2xl font-bold text-slate-800 mb-6">School Announcements</h2>
+          <div className="p-8 max-w-2xl mx-auto w-full overflow-y-auto relative">
+             <div className="flex justify-between items-center mb-6">
+                <h2 className="text-2xl font-bold text-slate-800">School Announcements</h2>
+                {isTeacher && (
+                   <button 
+                     onClick={() => setShowAnnounceModal(true)}
+                     className="px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition-colors flex items-center gap-2"
+                   >
+                     <Plus size={16} /> Post New
+                   </button>
+                )}
+             </div>
+             
              <div className="space-y-6">
-                {MOCK_ANNOUNCEMENTS.map(ann => (
+                {announcements.map(ann => (
                   <div key={ann.id} className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm relative overflow-hidden">
                      {ann.priority === 'HIGH' && <div className="absolute top-0 right-0 w-20 h-20 bg-rose-500/10 rounded-bl-full -mr-10 -mt-10"></div>}
                      <div className="flex items-center gap-2 mb-3">
@@ -223,6 +265,71 @@ const Messages = () => {
           </div>
         )}
       </div>
+
+      {/* Post Announcement Modal */}
+      {showAnnounceModal && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+           <div className="bg-white rounded-2xl w-full max-w-lg p-6 shadow-xl animate-in zoom-in-95 duration-200">
+              <div className="flex justify-between items-center mb-4">
+                 <h2 className="text-xl font-bold text-slate-800">Post Announcement</h2>
+                 <button onClick={() => setShowAnnounceModal(false)} className="text-slate-400 hover:text-slate-600"><X size={24} /></button>
+              </div>
+              <form onSubmit={handlePostAnnouncement} className="space-y-4">
+                 <div>
+                    <label className="block text-xs font-semibold text-slate-500 uppercase mb-1">Title</label>
+                    <input 
+                      type="text" 
+                      required
+                      value={newAnnouncement.title}
+                      onChange={(e) => setNewAnnouncement({...newAnnouncement, title: e.target.value})}
+                      className="w-full border border-slate-200 rounded-lg p-2.5 text-sm outline-none focus:ring-2 focus:ring-indigo-500"
+                      placeholder="e.g. Science Fair Postponed"
+                    />
+                 </div>
+                 
+                 <div className="grid grid-cols-2 gap-4">
+                    <div>
+                       <label className="block text-xs font-semibold text-slate-500 uppercase mb-1">Priority</label>
+                       <select 
+                         value={newAnnouncement.priority}
+                         onChange={(e) => setNewAnnouncement({...newAnnouncement, priority: e.target.value as 'NORMAL' | 'HIGH'})}
+                         className="w-full border border-slate-200 rounded-lg p-2.5 text-sm outline-none"
+                       >
+                         <option value="NORMAL">Normal</option>
+                         <option value="HIGH">High Priority</option>
+                       </select>
+                    </div>
+                    <div>
+                       <label className="block text-xs font-semibold text-slate-500 uppercase mb-1">Tags (comma separated)</label>
+                       <input 
+                         type="text" 
+                         value={newAnnouncement.tags}
+                         onChange={(e) => setNewAnnouncement({...newAnnouncement, tags: e.target.value})}
+                         className="w-full border border-slate-200 rounded-lg p-2.5 text-sm outline-none"
+                         placeholder="Events, Urgent..."
+                       />
+                    </div>
+                 </div>
+
+                 <div>
+                    <label className="block text-xs font-semibold text-slate-500 uppercase mb-1">Content</label>
+                    <textarea 
+                      required
+                      rows={4}
+                      value={newAnnouncement.content}
+                      onChange={(e) => setNewAnnouncement({...newAnnouncement, content: e.target.value})}
+                      className="w-full border border-slate-200 rounded-lg p-2.5 text-sm outline-none focus:ring-2 focus:ring-indigo-500"
+                      placeholder="Write your announcement here..."
+                    ></textarea>
+                 </div>
+
+                 <button type="submit" className="w-full bg-indigo-600 text-white font-bold py-3 rounded-xl hover:bg-indigo-700 transition-colors">
+                    Post Announcement
+                 </button>
+              </form>
+           </div>
+        </div>
+      )}
     </div>
   );
 };

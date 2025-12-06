@@ -69,7 +69,7 @@ export const MOCK_TASKS_INIT: Task[] = [
   }
 ];
 
-export const MOCK_TIMETABLE: TimeTableEntry[] = [
+export const MOCK_TIMETABLE_INIT: TimeTableEntry[] = [
   { id: 'tt1', day: 'Monday', startTime: '09:00', endTime: '10:00', subject: 'Mathematics', room: '101', teacher: 'Mr. Smith', color: 'bg-blue-100 border-blue-300 text-blue-800' },
   { id: 'tt2', day: 'Monday', startTime: '10:15', endTime: '11:15', subject: 'Physics', room: 'Lab A', teacher: 'Mrs. Davis', color: 'bg-purple-100 border-purple-300 text-purple-800' },
   { id: 'tt3', day: 'Monday', startTime: '11:30', endTime: '12:30', subject: 'History', room: '204', teacher: 'Mr. Thompson', color: 'bg-amber-100 border-amber-300 text-amber-800' },
@@ -107,7 +107,7 @@ export const MOCK_MESSAGES_INIT: Record<string, Message[]> = {
   ]
 };
 
-export const MOCK_ANNOUNCEMENTS: Announcement[] = [
+export const MOCK_ANNOUNCEMENTS_INIT: Announcement[] = [
   { id: 'an1', title: 'Science Fair Registration', content: 'Sign up for the annual Science Fair by next Monday. Teams of 2 permitted.', author: 'Principal Skinner', date: new Date(), priority: 'HIGH', tags: ['Events', 'Science'] },
   { id: 'an2', title: 'Library Renovation', content: 'The school library will be closed for renovations this week. Please use the study hall.', author: 'Admin', date: new Date(Date.now() - 172800000), priority: 'NORMAL', tags: ['Facility'] },
 ];
@@ -118,7 +118,9 @@ const KEYS = {
   TASKS: 'eduverse_tasks',
   HABITS: 'eduverse_habits',
   MESSAGES: 'eduverse_messages',
-  MOOD: 'eduverse_mood'
+  MOOD: 'eduverse_mood',
+  TIMETABLE: 'eduverse_timetable',
+  ANNOUNCEMENTS: 'eduverse_announcements'
 };
 
 // Helper to handle Date serialization
@@ -142,8 +144,15 @@ export const DataService = {
     if (!localStorage.getItem(KEYS.MESSAGES)) {
       localStorage.setItem(KEYS.MESSAGES, JSON.stringify(MOCK_MESSAGES_INIT));
     }
+    if (!localStorage.getItem(KEYS.TIMETABLE)) {
+      localStorage.setItem(KEYS.TIMETABLE, JSON.stringify(MOCK_TIMETABLE_INIT));
+    }
+    if (!localStorage.getItem(KEYS.ANNOUNCEMENTS)) {
+      localStorage.setItem(KEYS.ANNOUNCEMENTS, JSON.stringify(MOCK_ANNOUNCEMENTS_INIT));
+    }
   },
 
+  // --- TASKS ---
   getTasks: (): Task[] => {
     const data = localStorage.getItem(KEYS.TASKS);
     return data ? JSON.parse(data, reviveDates) : [];
@@ -164,6 +173,7 @@ export const DataService = {
     localStorage.setItem(KEYS.TASKS, JSON.stringify(tasks));
   },
 
+  // --- HABITS ---
   getHabits: (): Habit[] => {
     const data = localStorage.getItem(KEYS.HABITS);
     return data ? JSON.parse(data, reviveDates) : [];
@@ -178,6 +188,7 @@ export const DataService = {
     }
   },
 
+  // --- MESSAGES ---
   getMessages: (conversationId: string): Message[] => {
     const data = localStorage.getItem(KEYS.MESSAGES);
     const allMessages = data ? JSON.parse(data, reviveDates) : {};
@@ -194,6 +205,32 @@ export const DataService = {
     localStorage.setItem(KEYS.MESSAGES, JSON.stringify(allMessages));
   },
 
+  // --- TIMETABLE ---
+  getTimetable: (): TimeTableEntry[] => {
+    const data = localStorage.getItem(KEYS.TIMETABLE);
+    return data ? JSON.parse(data, reviveDates) : [];
+  },
+
+  addTimetableEntry: (entry: TimeTableEntry) => {
+    const entries = DataService.getTimetable();
+    entries.push(entry);
+    localStorage.setItem(KEYS.TIMETABLE, JSON.stringify(entries));
+  },
+
+  // --- ANNOUNCEMENTS ---
+  getAnnouncements: (): Announcement[] => {
+    const data = localStorage.getItem(KEYS.ANNOUNCEMENTS);
+    return data ? JSON.parse(data, reviveDates) : [];
+  },
+
+  addAnnouncement: (announcement: Announcement) => {
+    const list = DataService.getAnnouncements();
+    // Add to top
+    list.unshift(announcement);
+    localStorage.setItem(KEYS.ANNOUNCEMENTS, JSON.stringify(list));
+  },
+
+  // --- MOOD ---
   saveMood: (mood: Mood) => {
     localStorage.setItem(KEYS.MOOD, mood);
   },
@@ -203,5 +240,7 @@ export const DataService = {
   }
 };
 
-// Export raw mocks for components that haven't been refactored yet or need static data
-export const MOCK_TASKS = MOCK_TASKS_INIT; 
+// Backwards compatibility for components not fully refactored
+export const MOCK_TASKS = MOCK_TASKS_INIT;
+export const MOCK_TIMETABLE = MOCK_TIMETABLE_INIT;
+export const MOCK_ANNOUNCEMENTS = MOCK_ANNOUNCEMENTS_INIT;
