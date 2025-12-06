@@ -1,80 +1,18 @@
 
+import { supabase } from '../lib/supabaseClient';
 import { User, UserRole, Task, TaskStatus, TaskType, TimeTableEntry, Achievement, Habit, Conversation, Message, Announcement, Mood } from '../types';
 
-// Initial Mock Data (Used only on first load)
+// --- MOCK DATA FOR FALLBACK (If DB is empty/connection fails) ---
 export const MOCK_USERS: User[] = [
-  {
-    id: 'u1',
-    name: 'Alex Johnson',
-    role: UserRole.STUDENT,
-    avatar: 'https://picsum.photos/200/200?random=1',
-    level: 5,
-    xp: 2450,
-    email: 'alex.j@eduverse.com',
-    grade: '10th Grade'
-  },
-  {
-    id: 'u2',
-    name: 'Sarah Johnson',
-    role: UserRole.PARENT,
-    avatar: 'https://picsum.photos/200/200?random=2',
-    email: 'sarah.j@gmail.com'
-  },
-  {
-    id: 'u3',
-    name: 'Mr. Thompson',
-    role: UserRole.TEACHER,
-    avatar: 'https://picsum.photos/200/200?random=3',
-    email: 'thompson@school.edu'
-  },
-  {
-    id: 'u4',
-    name: 'Mrs. Davis',
-    role: UserRole.TEACHER,
-    avatar: 'https://picsum.photos/200/200?random=4',
-    email: 'davis@school.edu'
-  }
+  { id: 'u1', name: 'Alex Johnson', role: UserRole.STUDENT, avatar: 'https://picsum.photos/200/200?random=1', level: 5, xp: 2450, email: 'alex.j@eduverse.com', grade: '10th Grade' },
+  { id: 'u2', name: 'Sarah Johnson', role: UserRole.PARENT, avatar: 'https://picsum.photos/200/200?random=2', email: 'sarah.j@gmail.com' },
+  { id: 'u3', name: 'Mr. Thompson', role: UserRole.TEACHER, avatar: 'https://picsum.photos/200/200?random=3', email: 'thompson@school.edu' }
 ];
 
-export const MOCK_TASKS_INIT: Task[] = [
-  {
-    id: 't1',
-    title: 'Algebra II Quiz Prep',
-    subject: 'Mathematics',
-    dueDate: new Date(new Date().setDate(new Date().getDate() + 1)), // Tomorrow
-    status: TaskStatus.TODO,
-    type: TaskType.EXAM_PREP,
-    description: 'Review Chapter 4: Quadratic Equations. Practice problems 1-20.',
-    estimatedTimeMinutes: 60
-  },
-  {
-    id: 't2',
-    title: 'History Essay: Industrial Revolution',
-    subject: 'History',
-    dueDate: new Date(new Date().setDate(new Date().getDate() + 3)),
-    status: TaskStatus.IN_PROGRESS,
-    type: TaskType.HOMEWORK,
-    description: 'Write a 500-word essay on the impact of steam power.',
-    estimatedTimeMinutes: 120
-  },
-  {
-    id: 't3',
-    title: 'Science Lab Report',
-    subject: 'Physics',
-    dueDate: new Date(new Date().setDate(new Date().getDate() - 1)), // Yesterday
-    status: TaskStatus.COMPLETED,
-    type: TaskType.PROJECT,
-    description: 'Submit final report for the pendulum experiment.',
-    estimatedTimeMinutes: 45
-  }
-];
-
-export const MOCK_TIMETABLE_INIT: TimeTableEntry[] = [
-  { id: 'tt1', day: 'Monday', startTime: '09:00', endTime: '10:00', subject: 'Mathematics', room: '101', teacher: 'Mr. Smith', color: 'bg-blue-100 border-blue-300 text-blue-800' },
-  { id: 'tt2', day: 'Monday', startTime: '10:15', endTime: '11:15', subject: 'Physics', room: 'Lab A', teacher: 'Mrs. Davis', color: 'bg-purple-100 border-purple-300 text-purple-800' },
-  { id: 'tt3', day: 'Monday', startTime: '11:30', endTime: '12:30', subject: 'History', room: '204', teacher: 'Mr. Thompson', color: 'bg-amber-100 border-amber-300 text-amber-800' },
-  { id: 'tt4', day: 'Tuesday', startTime: '09:00', endTime: '10:00', subject: 'English', room: '105', teacher: 'Ms. Clark', color: 'bg-emerald-100 border-emerald-300 text-emerald-800' },
-  { id: 'tt5', day: 'Tuesday', startTime: '10:15', endTime: '11:15', subject: 'Chemistry', room: 'Lab B', teacher: 'Mr. White', color: 'bg-rose-100 border-rose-300 text-rose-800' },
+export const MOCK_TASKS: Task[] = [
+  { id: 't1', title: 'Algebra Quiz Prep', subject: 'Mathematics', dueDate: new Date(new Date().setDate(new Date().getDate() + 1)), status: TaskStatus.TODO, type: TaskType.EXAM_PREP, description: 'Review Chapter 5 quadratic equations.', estimatedTimeMinutes: 60 },
+  { id: 't2', title: 'History Essay Draft', subject: 'History', dueDate: new Date(new Date().setDate(new Date().getDate() + 2)), status: TaskStatus.TODO, type: TaskType.HOMEWORK, description: 'Write first draft about the Industrial Revolution.', estimatedTimeMinutes: 90 },
+  { id: 't3', title: 'Physics Lab Report', subject: 'Physics', dueDate: new Date(new Date().setDate(new Date().getDate() + 3)), status: TaskStatus.IN_PROGRESS, type: TaskType.PROJECT, description: 'Complete the lab report on pendulum motion.', estimatedTimeMinutes: 45 },
 ];
 
 export const MOCK_ACHIEVEMENTS: Achievement[] = [
@@ -83,164 +21,267 @@ export const MOCK_ACHIEVEMENTS: Achievement[] = [
   { id: 'a3', title: 'Early Bird', description: 'Submit 5 assignments before the deadline', icon: '⏰', unlocked: true, progress: 5, maxProgress: 5 },
   { id: 'a4', title: 'Bookworm', description: 'Read assigned literature chapters', icon: '📚', unlocked: false, progress: 40, maxProgress: 100 },
 ];
-
-export const MOCK_HABITS_INIT: Habit[] = [
-  { id: 'h1', name: 'Read for 30 mins', streak: 12, completedDates: [], category: 'STUDY' },
-  { id: 'h2', name: 'Drink 2L Water', streak: 5, completedDates: [], category: 'HEALTH' },
-  { id: 'h3', name: 'No Social Media', streak: 3, completedDates: [], category: 'MINDFULNESS' },
-  { id: 'h4', name: 'Review Class Notes', streak: 8, completedDates: [], category: 'STUDY' },
-];
-
 export const MOCK_CONVERSATIONS: Conversation[] = [
-  { id: 'c1', participantId: 'u3', lastMessage: 'Don\'t forget about the project due Friday.', timestamp: new Date(), unreadCount: 1 },
-  { id: 'c2', participantId: 'u4', lastMessage: 'Great job in class today!', timestamp: new Date(Date.now() - 86400000), unreadCount: 0 },
+  { id: 'c1', participantId: 'u3', lastMessage: 'Don\'t forget about the project due Friday.', timestamp: new Date(), unreadCount: 1 }
 ];
 
-export const MOCK_MESSAGES_INIT: Record<string, Message[]> = {
-  'c1': [
-    { id: 'm1', senderId: 'u3', text: 'Hi Alex, just a reminder about the history project.', timestamp: new Date(Date.now() - 100000), read: true },
-    { id: 'm2', senderId: 'u1', text: 'Yes Mr. Thompson, I am almost done.', timestamp: new Date(Date.now() - 50000), read: true },
-    { id: 'm3', senderId: 'u3', text: 'Don\'t forget about the project due Friday.', timestamp: new Date(), read: false },
-  ],
-  'c2': [
-    { id: 'm4', senderId: 'u4', text: 'Great job in class today!', timestamp: new Date(Date.now() - 86400000), read: true },
-  ]
-};
-
-export const MOCK_ANNOUNCEMENTS_INIT: Announcement[] = [
-  { id: 'an1', title: 'Science Fair Registration', content: 'Sign up for the annual Science Fair by next Monday. Teams of 2 permitted.', author: 'Principal Skinner', date: new Date(), priority: 'HIGH', tags: ['Events', 'Science'] },
-  { id: 'an2', title: 'Library Renovation', content: 'The school library will be closed for renovations this week. Please use the study hall.', author: 'Admin', date: new Date(Date.now() - 172800000), priority: 'NORMAL', tags: ['Facility'] },
-];
-
-// --- STORAGE SERVICE ---
-
-const KEYS = {
-  TASKS: 'eduverse_tasks',
-  HABITS: 'eduverse_habits',
-  MESSAGES: 'eduverse_messages',
-  MOOD: 'eduverse_mood',
-  TIMETABLE: 'eduverse_timetable',
-  ANNOUNCEMENTS: 'eduverse_announcements'
-};
-
-// Helper to handle Date serialization
-const reviveDates = (key: any, value: any) => {
-  if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}T/.test(value)) {
-    return new Date(value);
-  }
-  return value;
-};
+// --- SUPABASE DATA SERVICE ---
 
 export const DataService = {
-  init: () => {
-    if (typeof window === 'undefined') return;
-
-    if (!localStorage.getItem(KEYS.TASKS)) {
-      localStorage.setItem(KEYS.TASKS, JSON.stringify(MOCK_TASKS_INIT));
-    }
-    if (!localStorage.getItem(KEYS.HABITS)) {
-      localStorage.setItem(KEYS.HABITS, JSON.stringify(MOCK_HABITS_INIT));
-    }
-    if (!localStorage.getItem(KEYS.MESSAGES)) {
-      localStorage.setItem(KEYS.MESSAGES, JSON.stringify(MOCK_MESSAGES_INIT));
-    }
-    if (!localStorage.getItem(KEYS.TIMETABLE)) {
-      localStorage.setItem(KEYS.TIMETABLE, JSON.stringify(MOCK_TIMETABLE_INIT));
-    }
-    if (!localStorage.getItem(KEYS.ANNOUNCEMENTS)) {
-      localStorage.setItem(KEYS.ANNOUNCEMENTS, JSON.stringify(MOCK_ANNOUNCEMENTS_INIT));
+  
+  // --- USERS ---
+  async getUsers(): Promise<User[]> {
+    try {
+      const { data, error } = await supabase.from('profiles').select('*');
+      if (error || !data || data.length === 0) {
+        console.warn("Supabase (Users): Using Mock Data.", error?.message || "No data");
+        return MOCK_USERS;
+      }
+      return data.map((u: any) => ({
+        ...u,
+        role: u.role as UserRole
+      }));
+    } catch (e) {
+      console.warn("Fetch Error (Users): Using Mock Data.", e);
+      return MOCK_USERS;
     }
   },
 
   // --- TASKS ---
-  getTasks: (): Task[] => {
-    const data = localStorage.getItem(KEYS.TASKS);
-    return data ? JSON.parse(data, reviveDates) : [];
-  },
+  async getTasks(userId: string): Promise<Task[]> {
+    try {
+      const { data, error } = await supabase
+        .from('tasks')
+        .select('*')
+        .eq('user_id', userId)
+        .order('due_date', { ascending: true });
 
-  updateTask: (updatedTask: Task) => {
-    const tasks = DataService.getTasks();
-    const index = tasks.findIndex(t => t.id === updatedTask.id);
-    if (index !== -1) {
-      tasks[index] = updatedTask;
-      localStorage.setItem(KEYS.TASKS, JSON.stringify(tasks));
+      if (error) {
+        console.warn('Supabase (Tasks): Using Mock Data.', error.message);
+        return MOCK_TASKS;
+      }
+
+      if (!data) return MOCK_TASKS;
+
+      return data.map((t: any) => ({
+        id: t.id,
+        title: t.title,
+        subject: t.subject,
+        dueDate: new Date(t.due_date),
+        status: t.status as TaskStatus,
+        type: t.type as TaskType,
+        description: t.description,
+        estimatedTimeMinutes: t.estimated_time_minutes
+      }));
+    } catch (e) {
+      console.warn("Fetch Error (Tasks): Using Mock Data.", e);
+      return MOCK_TASKS;
     }
   },
 
-  addTask: (task: Task) => {
-    const tasks = DataService.getTasks();
-    tasks.push(task);
-    localStorage.setItem(KEYS.TASKS, JSON.stringify(tasks));
+  async updateTask(updatedTask: Task) {
+    // If ID starts with 't' it's likely a mock task, skip DB update
+    if (updatedTask.id.startsWith('t')) return;
+
+    const { error } = await supabase
+      .from('tasks')
+      .update({
+        status: updatedTask.status,
+        title: updatedTask.title,
+        description: updatedTask.description
+      })
+      .eq('id', updatedTask.id);
+      
+    if (error) console.error('Error updating task:', error.message);
+  },
+
+  async addTask(task: Task, userId: string) {
+    const { error } = await supabase
+      .from('tasks')
+      .insert({
+        user_id: userId,
+        title: task.title,
+        subject: task.subject,
+        due_date: task.dueDate.toISOString(),
+        status: task.status,
+        type: task.type,
+        description: task.description,
+        estimated_time_minutes: task.estimatedTimeMinutes
+      });
+
+    if (error) console.error('Error adding task:', error.message);
   },
 
   // --- HABITS ---
-  getHabits: (): Habit[] => {
-    const data = localStorage.getItem(KEYS.HABITS);
-    return data ? JSON.parse(data, reviveDates) : [];
+  async getHabits(userId: string): Promise<Habit[]> {
+    try {
+      const { data, error } = await supabase
+        .from('habits')
+        .select('*')
+        .eq('user_id', userId)
+        .order('id', { ascending: true });
+
+      if (error || !data) {
+        // Mock fallback if habits table missing
+        return [
+          { id: 'h1', name: 'Read for 30 mins', streak: 5, category: 'STUDY', completedDates: [] },
+          { id: 'h2', name: 'Drink Water', streak: 12, category: 'HEALTH', completedDates: [] }
+        ];
+      }
+      
+      return data.map((h: any) => ({
+        id: h.id,
+        name: h.name,
+        streak: h.streak,
+        category: h.category,
+        completedDates: h.completed_dates || []
+      }));
+    } catch (e) {
+      return [];
+    }
   },
 
-  updateHabit: (updatedHabit: Habit) => {
-    const habits = DataService.getHabits();
-    const index = habits.findIndex(h => h.id === updatedHabit.id);
-    if (index !== -1) {
-      habits[index] = updatedHabit;
-      localStorage.setItem(KEYS.HABITS, JSON.stringify(habits));
-    }
+  async updateHabit(updatedHabit: Habit) {
+    if (updatedHabit.id.startsWith('h')) return;
+
+    const { error } = await supabase
+      .from('habits')
+      .update({
+        streak: updatedHabit.streak,
+        completed_dates: updatedHabit.completedDates
+      })
+      .eq('id', updatedHabit.id);
+
+    if (error) console.error('Error updating habit', error.message);
   },
 
   // --- MESSAGES ---
-  getMessages: (conversationId: string): Message[] => {
-    const data = localStorage.getItem(KEYS.MESSAGES);
-    const allMessages = data ? JSON.parse(data, reviveDates) : {};
-    return allMessages[conversationId] || [];
+  async getMessages(conversationId: string): Promise<Message[]> {
+    try {
+      const { data, error } = await supabase
+        .from('messages')
+        .select('*')
+        .eq('conversation_id', conversationId)
+        .order('timestamp', { ascending: true });
+
+      if (error) {
+        console.warn("Supabase (Messages):", error.message);
+        return [];
+      }
+
+      return (data || []).map((m: any) => ({
+        id: m.id,
+        senderId: m.sender_id,
+        text: m.text,
+        timestamp: new Date(m.timestamp),
+        read: m.read
+      }));
+    } catch (e) {
+      return [];
+    }
   },
 
-  addMessage: (conversationId: string, message: Message) => {
-    const data = localStorage.getItem(KEYS.MESSAGES);
-    const allMessages = data ? JSON.parse(data, reviveDates) : {};
-    if (!allMessages[conversationId]) {
-      allMessages[conversationId] = [];
-    }
-    allMessages[conversationId].push(message);
-    localStorage.setItem(KEYS.MESSAGES, JSON.stringify(allMessages));
+  async addMessage(conversationId: string, message: Message) {
+    const { error } = await supabase
+      .from('messages')
+      .insert({
+        conversation_id: conversationId,
+        sender_id: message.senderId,
+        text: message.text,
+        timestamp: message.timestamp.toISOString(),
+        read: message.read
+      });
+      
+    if (error) console.error('Error sending message:', error.message);
   },
 
   // --- TIMETABLE ---
-  getTimetable: (): TimeTableEntry[] => {
-    const data = localStorage.getItem(KEYS.TIMETABLE);
-    return data ? JSON.parse(data, reviveDates) : [];
+  async getTimetable(userId: string): Promise<TimeTableEntry[]> {
+    try {
+      const { data, error } = await supabase
+        .from('timetable')
+        .select('*')
+        .eq('user_id', userId);
+
+      if (error) return [];
+
+      return (data || []).map((t: any) => ({
+        id: t.id,
+        day: t.day,
+        startTime: t.start_time,
+        endTime: t.end_time,
+        subject: t.subject,
+        room: t.room,
+        teacher: t.teacher,
+        color: t.color
+      }));
+    } catch (e) {
+      return [];
+    }
   },
 
-  addTimetableEntry: (entry: TimeTableEntry) => {
-    const entries = DataService.getTimetable();
-    entries.push(entry);
-    localStorage.setItem(KEYS.TIMETABLE, JSON.stringify(entries));
+  async addTimetableEntry(entry: TimeTableEntry, userId: string) {
+    const { error } = await supabase
+      .from('timetable')
+      .insert({
+        user_id: userId,
+        day: entry.day,
+        start_time: entry.startTime,
+        end_time: entry.endTime,
+        subject: entry.subject,
+        room: entry.room,
+        teacher: entry.teacher,
+        color: entry.color
+      });
+
+    if (error) console.error('Error adding timetable:', error.message);
   },
 
   // --- ANNOUNCEMENTS ---
-  getAnnouncements: (): Announcement[] => {
-    const data = localStorage.getItem(KEYS.ANNOUNCEMENTS);
-    return data ? JSON.parse(data, reviveDates) : [];
+  async getAnnouncements(): Promise<Announcement[]> {
+    try {
+      const { data, error } = await supabase
+        .from('announcements')
+        .select('*')
+        .order('date', { ascending: false });
+
+      if (error) return [];
+
+      return (data || []).map((a: any) => ({
+        id: a.id,
+        title: a.title,
+        content: a.content,
+        author: a.author,
+        date: new Date(a.date),
+        priority: a.priority,
+        tags: a.tags || []
+      }));
+    } catch (e) {
+      return [];
+    }
   },
 
-  addAnnouncement: (announcement: Announcement) => {
-    const list = DataService.getAnnouncements();
-    // Add to top
-    list.unshift(announcement);
-    localStorage.setItem(KEYS.ANNOUNCEMENTS, JSON.stringify(list));
+  async addAnnouncement(announcement: Announcement) {
+    const { error } = await supabase
+      .from('announcements')
+      .insert({
+        title: announcement.title,
+        content: announcement.content,
+        author: announcement.author,
+        date: announcement.date.toISOString(),
+        priority: announcement.priority,
+        tags: announcement.tags
+      });
+      
+    if (error) console.error('Error adding announcement:', error.message);
   },
 
-  // --- MOOD ---
+  // --- MOOD (Local only for now, or could be a table) ---
   saveMood: (mood: Mood) => {
-    localStorage.setItem(KEYS.MOOD, mood);
+    localStorage.setItem('eduverse_mood', mood);
   },
 
   getMood: (): Mood | null => {
-    return localStorage.getItem(KEYS.MOOD) as Mood | null;
+    return localStorage.getItem('eduverse_mood') as Mood | null;
   }
 };
-
-// Backwards compatibility for components not fully refactored
-export const MOCK_TASKS = MOCK_TASKS_INIT;
-export const MOCK_TIMETABLE = MOCK_TIMETABLE_INIT;
-export const MOCK_ANNOUNCEMENTS = MOCK_ANNOUNCEMENTS_INIT;

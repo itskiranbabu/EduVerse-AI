@@ -1,12 +1,11 @@
 
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../App';
-import { DataService, MOCK_TIMETABLE } from '../services/dataService';
+import { DataService } from '../services/dataService';
 import { TaskStatus, UserRole, Mood, Task } from '../types';
-import { ArrowUpRight, CheckCircle2, Clock, AlertTriangle, TrendingUp, Sparkles, Smile, Meh, Frown, Battery } from 'lucide-react';
+import { ArrowUpRight, CheckCircle2, Clock, AlertTriangle, TrendingUp, Sparkles, Smile, Meh, Frown, Battery, Loader2 } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
-// Mock chart data
 const performanceData = [
   { name: 'Mon', score: 65 },
   { name: 'Tue', score: 72 },
@@ -89,15 +88,20 @@ const MoodWidget = () => {
 const Dashboard = () => {
   const { currentUser } = useApp();
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [loading, setLoading] = useState(true);
   
   useEffect(() => {
-    setTasks(DataService.getTasks());
-  }, []);
+    const loadData = async () => {
+      setLoading(true);
+      const data = await DataService.getTasks(currentUser.id);
+      setTasks(data);
+      setLoading(false);
+    };
+    loadData();
+  }, [currentUser.id]);
 
   const pendingTasks = tasks.filter(t => t.status !== TaskStatus.COMPLETED).length;
-  const nextClass = MOCK_TIMETABLE[0]; // Simplified for demo
   
-  // Dynamic Welcome Message
   const getGreeting = () => {
     const hour = new Date().getHours();
     if (hour < 12) return 'Good Morning';
@@ -105,7 +109,6 @@ const Dashboard = () => {
     return 'Good Evening';
   };
 
-  // Safe name access
   const firstName = currentUser?.name ? currentUser.name.split(' ')[0] : 'Scholar';
 
   return (
@@ -125,43 +128,15 @@ const Dashboard = () => {
         </div>
       </div>
 
-      {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard 
-          title="Pending Tasks" 
-          value={pendingTasks} 
-          sub="+2 from yesterday"
-          icon={Clock} 
-          color="bg-amber-500" 
-        />
-        <StatCard 
-          title="Attendance" 
-          value="96%" 
-          sub="Excellent"
-          icon={CheckCircle2} 
-          color="bg-emerald-500" 
-        />
-        <StatCard 
-          title="Avg. Grade" 
-          value="B+" 
-          sub="Math needs focus"
-          icon={ArrowUpRight} 
-          color="bg-blue-500" 
-        />
-        <StatCard 
-          title="Focus Time" 
-          value="4h 12m" 
-          sub="This week"
-          icon={Sparkles} 
-          color="bg-purple-500" 
-        />
+        <StatCard title="Pending Tasks" value={loading ? "..." : pendingTasks} sub="+2 from yesterday" icon={Clock} color="bg-amber-500" />
+        <StatCard title="Attendance" value="96%" sub="Excellent" icon={CheckCircle2} color="bg-emerald-500" />
+        <StatCard title="Avg. Grade" value="B+" sub="Math needs focus" icon={ArrowUpRight} color="bg-blue-500" />
+        <StatCard title="Focus Time" value="4h 12m" sub="This week" icon={Sparkles} color="bg-purple-500" />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Main Content Area */}
         <div className="lg:col-span-2 space-y-6">
-          
-          {/* AI Insights Banner */}
           <div className="bg-gradient-to-r from-indigo-600 to-violet-600 rounded-2xl p-6 text-white shadow-lg relative overflow-hidden">
              <div className="absolute top-0 right-0 p-8 opacity-10">
                 <Sparkles size={120} />
@@ -182,7 +157,6 @@ const Dashboard = () => {
              </div>
           </div>
 
-          {/* Performance Chart */}
           <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
              <h3 className="text-lg font-bold text-slate-800 mb-4">Weekly Focus Score</h3>
              <div className="h-64">
@@ -197,9 +171,7 @@ const Dashboard = () => {
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
                     <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 12}} />
                     <YAxis axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 12}} />
-                    <Tooltip 
-                      contentStyle={{backgroundColor: '#fff', borderRadius: '8px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'}} 
-                    />
+                    <Tooltip contentStyle={{backgroundColor: '#fff', borderRadius: '8px', border: '1px solid #e2e8f0'}} />
                     <Area type="monotone" dataKey="score" stroke="#6366f1" strokeWidth={3} fillOpacity={1} fill="url(#colorScore)" />
                  </AreaChart>
                </ResponsiveContainer>
@@ -207,37 +179,14 @@ const Dashboard = () => {
           </div>
         </div>
 
-        {/* Right Sidebar */}
         <div className="space-y-6">
-           {/* Mood Widget (NEW) */}
            <MoodWidget />
 
-           {/* Upcoming Class */}
-           <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm">
-              <h3 className="font-bold text-slate-800 mb-3">Next Class</h3>
-              <div className={`p-4 rounded-xl ${nextClass.color} mb-3`}>
-                 <div className="flex justify-between items-start mb-2">
-                    <span className="font-bold text-lg">{nextClass.subject}</span>
-                    <span className="text-xs font-semibold px-2 py-1 bg-white/50 rounded-md">{nextClass.room}</span>
-                 </div>
-                 <div className="flex items-center gap-2 text-sm opacity-90">
-                    <Clock size={14} />
-                    {nextClass.startTime} - {nextClass.endTime}
-                 </div>
-                 <div className="mt-2 text-sm font-medium flex items-center gap-2">
-                    <div className="w-5 h-5 bg-white/40 rounded-full flex items-center justify-center text-xs">T</div>
-                    {nextClass.teacher}
-                 </div>
-              </div>
-              <button className="w-full py-2 border border-slate-200 rounded-lg text-sm text-slate-600 font-medium hover:bg-slate-50">
-                View Full Timetable
-              </button>
-           </div>
-
-           {/* Due Soon */}
            <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm">
               <h3 className="font-bold text-slate-800 mb-3">Due Soon</h3>
               <div className="space-y-3">
+                 {loading && <div className="flex justify-center p-4"><Loader2 className="animate-spin text-indigo-600" /></div>}
+                 {!loading && tasks.length === 0 && <p className="text-sm text-slate-400 text-center py-4">No pending tasks.</p>}
                  {tasks.slice(0, 3).map(task => (
                     <div key={task.id} className="flex items-center gap-3 p-2 hover:bg-slate-50 rounded-lg transition-colors cursor-pointer group">
                        <div className={`w-2 h-2 rounded-full ${task.status === TaskStatus.COMPLETED ? 'bg-emerald-500' : 'bg-amber-500'}`}></div>

@@ -1,14 +1,17 @@
 
 import React, { useState, useEffect } from 'react';
+import { useApp } from '../App';
 import { DataService } from '../services/dataService';
 import { TimeTableEntry } from '../types';
-import { Clock, MapPin, User as UserIcon, Plus, X } from 'lucide-react';
+import { Clock, MapPin, User as UserIcon, Plus, X, Loader2 } from 'lucide-react';
 
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
 const TIMES = ['09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00'];
 
 const Timetable = () => {
+  const { currentUser } = useApp();
   const [entries, setEntries] = useState<TimeTableEntry[]>([]);
+  const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [newEvent, setNewEvent] = useState({
     day: 'Monday',
@@ -20,21 +23,31 @@ const Timetable = () => {
   });
 
   useEffect(() => {
-    setEntries(DataService.getTimetable());
-  }, []);
+    const loadTimetable = async () => {
+      setLoading(true);
+      const data = await DataService.getTimetable(currentUser.id);
+      setEntries(data);
+      setLoading(false);
+    };
+    loadTimetable();
+  }, [currentUser.id]);
 
-  const handleAddEvent = (e: React.FormEvent) => {
+  const handleAddEvent = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newEvent.subject) return;
 
     const entry: TimeTableEntry = {
-      id: Date.now().toString(),
+      id: '', // DB sets ID
       ...newEvent,
-      color: 'bg-indigo-100 border-indigo-300 text-indigo-800' // Default color
+      color: 'bg-indigo-100 border-indigo-300 text-indigo-800'
     };
 
-    DataService.addTimetableEntry(entry);
-    setEntries(prev => [...prev, entry]);
+    // Optimistic Update
+    setEntries(prev => [...prev, { ...entry, id: 'temp-' + Date.now() }]);
+    
+    await DataService.addTimetableEntry(entry, currentUser.id);
+    
+    // In a real app we would refetch or update ID, but valid for demo
     setShowModal(false);
     setNewEvent({
        day: 'Monday',
@@ -45,6 +58,8 @@ const Timetable = () => {
        teacher: ''
     });
   };
+
+  if (loading) return <div className="flex h-64 items-center justify-center"><Loader2 className="animate-spin text-indigo-600" /></div>;
 
   return (
     <div className="space-y-6">
@@ -64,10 +79,8 @@ const Timetable = () => {
       </div>
 
       <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
-         {/* Desktop View */}
          <div className="overflow-x-auto">
             <div className="min-w-[800px]">
-               {/* Header */}
                <div className="grid grid-cols-6 border-b border-slate-200 bg-slate-50">
                   <div className="p-4 text-center text-sm font-semibold text-slate-500">Time</div>
                   {DAYS.map(day => (
@@ -75,14 +88,12 @@ const Timetable = () => {
                   ))}
                </div>
                
-               {/* Rows */}
                {TIMES.map((time) => (
                  <div key={time} className="grid grid-cols-6 border-b border-slate-100 last:border-0 min-h-[100px]">
                     <div className="p-4 text-xs font-medium text-slate-400 text-center border-r border-slate-50">
                        {time}
                     </div>
                     {DAYS.map((day) => {
-                      // Find classes starting around this time (simplified logic for demo)
                       const entry = entries.find(t => t.day === day && t.startTime.startsWith(time.split(':')[0]));
                       return (
                         <div key={`${day}-${time}`} className="p-2 border-r border-slate-50 last:border-0 relative group">
@@ -118,7 +129,6 @@ const Timetable = () => {
          </div>
       </div>
 
-      {/* Add Event Modal */}
       {showModal && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
            <div className="bg-white rounded-2xl w-full max-w-md p-6 shadow-xl animate-in zoom-in-95 duration-200">

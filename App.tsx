@@ -2,23 +2,10 @@
 import React, { useState, useEffect, createContext, useContext } from 'react';
 import { HashRouter, Routes, Route, Link, useLocation, Navigate } from 'react-router-dom';
 import { 
-  LayoutDashboard, 
-  BookOpen, 
-  Calendar, 
-  MessageSquare, 
-  User as UserIcon, 
-  Settings, 
-  GraduationCap, 
-  BrainCircuit,
-  LogOut,
-  Bell,
-  Menu,
-  X,
-  Mail,
-  Compass
+  LayoutDashboard, BookOpen, Calendar, MessageSquare, User as UserIcon, Settings, GraduationCap, BrainCircuit, LogOut, Bell, Menu, X, Mail, Compass
 } from 'lucide-react';
 import { User, UserRole } from './types';
-import { MOCK_USERS, DataService } from './services/dataService';
+import { DataService, MOCK_USERS } from './services/dataService';
 
 // Pages
 import Dashboard from './pages/Dashboard';
@@ -31,10 +18,10 @@ import Messages from './pages/Messages';
 import Profile from './pages/Profile';
 import Career from './pages/Career';
 
-// --- Context ---
 interface AppContextType {
   currentUser: User;
   switchUser: (role: UserRole) => void;
+  availableUsers: User[];
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -44,8 +31,6 @@ export const useApp = () => {
   if (!context) throw new Error("useApp must be used within AppProvider");
   return context;
 };
-
-// --- Layout Components ---
 
 const SidebarItem: React.FC<{ to: string, icon: any, label: string, active: boolean }> = ({ to, icon: Icon, label, active }) => (
   <Link 
@@ -62,7 +47,7 @@ const SidebarItem: React.FC<{ to: string, icon: any, label: string, active: bool
 );
 
 const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { currentUser, switchUser } = useApp();
+  const { currentUser, switchUser, availableUsers } = useApp();
   const location = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
@@ -80,7 +65,6 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
   return (
     <div className="min-h-screen bg-slate-50 flex">
-      {/* Mobile Sidebar Backdrop */}
       {isMobileMenuOpen && (
         <div 
           className="fixed inset-0 bg-black/50 z-40 lg:hidden"
@@ -88,7 +72,6 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         />
       )}
 
-      {/* Sidebar */}
       <aside className={`fixed inset-y-0 left-0 z-50 w-64 bg-white border-r border-slate-200 transform transition-transform duration-300 lg:translate-x-0 lg:static flex flex-col ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}>
         <div className="p-6 flex items-center gap-3">
           <div className="w-10 h-10 bg-indigo-600 rounded-lg flex items-center justify-center text-white">
@@ -117,13 +100,13 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
                 </div>
               </div>
               <div className="space-y-1">
-                 <p className="text-xs text-slate-400 font-medium uppercase tracking-wider mb-1">Switch Role Demo</p>
+                 <p className="text-xs text-slate-400 font-medium uppercase tracking-wider mb-1">Switch Role (DB Mode)</p>
                  <select 
                     className="w-full text-xs p-2 rounded bg-white border border-slate-200 text-slate-700 outline-none focus:border-indigo-500"
                     value={currentUser.role}
                     onChange={(e) => switchUser(e.target.value as UserRole)}
                  >
-                    {MOCK_USERS.map(u => (
+                    {availableUsers.map(u => (
                       <option key={u.id} value={u.role}>{u.name} ({u.role})</option>
                     ))}
                  </select>
@@ -132,9 +115,7 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         </div>
       </aside>
 
-      {/* Main Content */}
       <main className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
-        {/* Header */}
         <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-4 lg:px-8">
           <button 
             className="lg:hidden p-2 text-slate-500 hover:bg-slate-100 rounded-lg"
@@ -164,24 +145,27 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   );
 };
 
-// --- App Component ---
-
 const App: React.FC = () => {
-  // Simple state management for demo
+  const [availableUsers, setAvailableUsers] = useState<User[]>(MOCK_USERS);
   const [currentUser, setCurrentUser] = useState<User>(MOCK_USERS[0]);
 
   // Init Data Layer on Mount
   useEffect(() => {
-    DataService.init();
+    DataService.getUsers().then(users => {
+      if (users.length > 0) {
+        setAvailableUsers(users);
+        setCurrentUser(users[0]);
+      }
+    });
   }, []);
 
   const switchUser = (role: UserRole) => {
-    const user = MOCK_USERS.find(u => u.role === role);
+    const user = availableUsers.find(u => u.role === role);
     if (user) setCurrentUser(user);
   };
 
   return (
-    <AppContext.Provider value={{ currentUser, switchUser }}>
+    <AppContext.Provider value={{ currentUser, switchUser, availableUsers }}>
       <HashRouter>
         <Layout>
           <Routes>

@@ -1,18 +1,29 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useApp } from '../App';
-import { MOCK_TASKS, MOCK_ACHIEVEMENTS } from '../services/dataService';
-import { User, TaskStatus } from '../types';
-import { Download, Mail, MapPin, School, Book, Trophy, Star, TrendingUp, PieChart } from 'lucide-react';
+import { DataService, MOCK_ACHIEVEMENTS } from '../services/dataService';
+import { Task, TaskStatus } from '../types';
+import { Download, Mail, MapPin, School, Book, Trophy, Star, TrendingUp, PieChart, Loader2 } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar } from 'recharts';
 
 const Profile = () => {
   const { currentUser } = useApp();
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  // Mock Stats
-  const completedTasks = MOCK_TASKS.filter(t => t.status === TaskStatus.COMPLETED).length;
-  const totalTasks = MOCK_TASKS.length;
-  const completionRate = Math.round((completedTasks / totalTasks) * 100) || 0;
+  useEffect(() => {
+    const loadStats = async () => {
+      setLoading(true);
+      const data = await DataService.getTasks(currentUser.id);
+      setTasks(data);
+      setLoading(false);
+    };
+    loadStats();
+  }, [currentUser.id]);
+
+  const completedTasks = tasks.filter(t => t.status === TaskStatus.COMPLETED).length;
+  const totalTasks = tasks.length;
+  const completionRate = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
   
   const gradeData = [
     { subject: 'Math', grade: 88, fullMark: 100 },
@@ -30,9 +41,10 @@ const Profile = () => {
     { subject: 'Speed', A: 85, fullMark: 150 },
   ];
 
+  if (loading) return <div className="flex h-64 items-center justify-center"><Loader2 className="animate-spin text-indigo-600" /></div>;
+
   return (
     <div className="max-w-5xl mx-auto space-y-8">
-      {/* Header Card */}
       <div className="bg-white rounded-3xl p-8 border border-slate-200 shadow-sm relative overflow-hidden">
          <div className="absolute top-0 left-0 w-full h-32 bg-gradient-to-r from-indigo-500 to-violet-500"></div>
          
@@ -60,7 +72,6 @@ const Profile = () => {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-         {/* Academic Performance */}
          <div className="md:col-span-2 space-y-8">
             <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
                <h3 className="text-lg font-bold text-slate-800 mb-6 flex items-center gap-2">
@@ -100,7 +111,6 @@ const Profile = () => {
             </div>
          </div>
 
-         {/* Sidebar Stats */}
          <div className="space-y-8">
             <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
                <h3 className="text-lg font-bold text-slate-800 mb-4">Skill Radar</h3>

@@ -10,21 +10,18 @@ const Achievements = () => {
   const [habits, setHabits] = useState<Habit[]>([]);
 
   useEffect(() => {
-    setHabits(DataService.getHabits());
-  }, []);
+    DataService.getHabits(currentUser.id).then(setHabits);
+  }, [currentUser.id]);
 
-  const toggleHabit = (id: string) => {
-    const updatedHabits = habits.map(h => {
-      if (h.id === id) {
-        // Simple toggle logic for demo: increment streak
-        // In production, check if already completed today
-        const newHabit = { ...h, streak: h.streak + 1 };
-        DataService.updateHabit(newHabit);
-        return newHabit;
-      }
-      return h;
-    });
-    setHabits(updatedHabits);
+  const toggleHabit = async (id: string) => {
+    const habitToUpdate = habits.find(h => h.id === id);
+    if (!habitToUpdate) return;
+
+    // Optimistic Update
+    const updatedHabit = { ...habitToUpdate, streak: habitToUpdate.streak + 1 };
+    setHabits(prev => prev.map(h => h.id === id ? updatedHabit : h));
+
+    await DataService.updateHabit(updatedHabit);
   };
 
   const nextLevelXp = 3000;
@@ -33,7 +30,6 @@ const Achievements = () => {
 
   return (
     <div className="space-y-8">
-      {/* Hero Section */}
       <div className="bg-gradient-to-r from-violet-600 to-indigo-600 rounded-3xl p-8 text-white shadow-lg relative overflow-hidden">
          <div className="absolute top-0 right-0 p-12 opacity-10 rotate-12">
             <Trophy size={200} />
@@ -65,7 +61,6 @@ const Achievements = () => {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-         {/* Habit Tracker */}
          <div className="lg:col-span-2 space-y-6">
             <div className="flex items-center justify-between">
                <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
@@ -75,6 +70,7 @@ const Achievements = () => {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+               {habits.length === 0 && <p className="text-slate-400 text-sm">No habits tracked yet.</p>}
                {habits.map(habit => (
                  <div key={habit.id} className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-all flex items-center gap-4 group">
                     <button 
@@ -101,13 +97,11 @@ const Achievements = () => {
                  </div>
                ))}
                
-               {/* Add New Habit Button (Visual) */}
                <div className="border-2 border-dashed border-slate-200 rounded-xl flex flex-col items-center justify-center p-4 text-slate-400 hover:border-indigo-300 hover:text-indigo-500 hover:bg-indigo-50 transition-all cursor-pointer h-[88px]">
                   <span className="font-bold">+ Add New Habit</span>
                </div>
             </div>
 
-            {/* Recent Activity / Stats */}
             <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm mt-8">
                <h3 className="font-bold text-slate-800 mb-4">Weekly Stats</h3>
                <div className="grid grid-cols-7 gap-2 h-32 items-end">
@@ -126,7 +120,6 @@ const Achievements = () => {
             </div>
          </div>
 
-         {/* Badges & Achievements */}
          <div className="space-y-6">
             <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
                <Award className="text-amber-500" /> Badges
