@@ -1,8 +1,16 @@
-
 import { GoogleGenAI, Type } from "@google/genai";
 import { Task } from "../types";
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+// The API key must be obtained exclusively from process.env.API_KEY according to guidelines.
+// It is polyfilled in index.tsx for browser environments.
+const apiKey = process.env.API_KEY || '';
+
+let ai: GoogleGenAI;
+try {
+  ai = new GoogleGenAI({ apiKey: apiKey });
+} catch (e) {
+  console.error("Gemini Init Failed:", e);
+}
 
 // Using Flash for faster, general responses
 const MODEL_NAME = 'gemini-2.5-flash';
@@ -12,6 +20,8 @@ export const GeminiService = {
    * Explains a concept specifically tailored to a student's grade level.
    */
   async explainConcept(concept: string, subject: string, gradeLevel: string = "10th Grade"): Promise<string> {
+    if (!ai) return "AI Service not initialized.";
+
     try {
       const prompt = `
         You are an expert ${subject} tutor for a ${gradeLevel} student.
@@ -36,6 +46,8 @@ export const GeminiService = {
    * Generates a hint for a homework task without giving the direct answer.
    */
   async getHomeworkHint(taskDescription: string, subject: string): Promise<string> {
+    if (!ai) return "AI Service not initialized.";
+
     try {
       const prompt = `
         The student is working on this ${subject} task: "${taskDescription}".
@@ -59,6 +71,8 @@ export const GeminiService = {
    * Creates a structured study plan based on pending tasks.
    */
   async generateStudyPlan(tasks: Task[], availableHours: number): Promise<any> {
+    if (!ai) return null;
+
     try {
       const taskList = tasks.map(t => `${t.subject}: ${t.title} (Due: ${t.dueDate.toDateString()})`).join('\n');
       const prompt = `
@@ -113,6 +127,8 @@ export const GeminiService = {
    * Generates a career roadmap.
    */
   async generateCareerRoadmap(career: string): Promise<any> {
+    if (!ai) return null;
+
     try {
       const prompt = `
         I am a high school student who wants to become a "${career}".
@@ -156,6 +172,8 @@ export const GeminiService = {
    * Generates a quick quiz for a subject.
    */
   async generateQuiz(subject: string, topic: string): Promise<any> {
+    if (!ai) return null;
+    
     try {
       const prompt = `Generate 3 multiple choice questions for ${subject} about ${topic}. Return JSON.`;
        const response = await ai.models.generateContent({
