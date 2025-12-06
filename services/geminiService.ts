@@ -1,18 +1,37 @@
+
 import { GoogleGenAI, Type } from "@google/genai";
 import { Task } from "../types";
 
-// The API key must be obtained exclusively from process.env.API_KEY according to guidelines.
-// It is polyfilled in index.tsx for browser environments.
-const apiKey = process.env.API_KEY || '';
+// Lazy Initialization Helper
+// We do not initialize the client at the top level to avoid 'process is undefined' errors during build/load.
+let aiClient: GoogleGenAI | null = null;
 
-let ai: GoogleGenAI;
-try {
-  ai = new GoogleGenAI({ apiKey: apiKey });
-} catch (e) {
-  console.error("Gemini Init Failed:", e);
-}
+const getAiClient = (): GoogleGenAI | null => {
+  if (aiClient) return aiClient;
 
-// Using Flash for faster, general responses
+  // Try to find the key in various locations
+  let key = '';
+  try {
+    // @ts-ignore
+    key = process.env.API_KEY || import.meta.env.VITE_API_KEY || import.meta.env.API_KEY || '';
+  } catch (e) {
+    console.warn("Could not read env vars safely");
+  }
+
+  if (!key) {
+    console.warn("Gemini API Key is missing.");
+    return null;
+  }
+
+  try {
+    aiClient = new GoogleGenAI({ apiKey: key });
+    return aiClient;
+  } catch (e) {
+    console.error("Failed to create Gemini Client:", e);
+    return null;
+  }
+};
+
 const MODEL_NAME = 'gemini-2.5-flash';
 
 export const GeminiService = {
@@ -20,7 +39,8 @@ export const GeminiService = {
    * Explains a concept specifically tailored to a student's grade level.
    */
   async explainConcept(concept: string, subject: string, gradeLevel: string = "10th Grade"): Promise<string> {
-    if (!ai) return "AI Service not initialized.";
+    const ai = getAiClient();
+    if (!ai) return "AI Service is not configured. Please check your API Key.";
 
     try {
       const prompt = `
@@ -46,7 +66,8 @@ export const GeminiService = {
    * Generates a hint for a homework task without giving the direct answer.
    */
   async getHomeworkHint(taskDescription: string, subject: string): Promise<string> {
-    if (!ai) return "AI Service not initialized.";
+    const ai = getAiClient();
+    if (!ai) return "AI Service is not configured.";
 
     try {
       const prompt = `
@@ -71,6 +92,7 @@ export const GeminiService = {
    * Creates a structured study plan based on pending tasks.
    */
   async generateStudyPlan(tasks: Task[], availableHours: number): Promise<any> {
+    const ai = getAiClient();
     if (!ai) return null;
 
     try {
@@ -127,6 +149,7 @@ export const GeminiService = {
    * Generates a career roadmap.
    */
   async generateCareerRoadmap(career: string): Promise<any> {
+    const ai = getAiClient();
     if (!ai) return null;
 
     try {
@@ -172,6 +195,7 @@ export const GeminiService = {
    * Generates a quick quiz for a subject.
    */
   async generateQuiz(subject: string, topic: string): Promise<any> {
+    const ai = getAiClient();
     if (!ai) return null;
     
     try {
