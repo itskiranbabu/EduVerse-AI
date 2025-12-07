@@ -1,4 +1,3 @@
-
 import { GoogleGenAI, Type } from "@google/genai";
 import { Task } from "../types";
 
@@ -9,22 +8,10 @@ let aiClient: GoogleGenAI | null = null;
 const getAiClient = (): GoogleGenAI | null => {
   if (aiClient) return aiClient;
 
-  // Try to find the key in various locations
-  let key = '';
   try {
-    // @ts-ignore
-    key = process.env.API_KEY || import.meta.env.VITE_API_KEY || import.meta.env.API_KEY || '';
-  } catch (e) {
-    console.warn("Could not read env vars safely");
-  }
-
-  if (!key) {
-    console.warn("Gemini API Key is missing.");
-    return null;
-  }
-
-  try {
-    aiClient = new GoogleGenAI({ apiKey: key });
+    // The API key must be obtained exclusively from the environment variable process.env.API_KEY.
+    // Assume this variable is pre-configured, valid, and accessible.
+    aiClient = new GoogleGenAI({ apiKey: process.env.API_KEY });
     return aiClient;
   } catch (e) {
     console.error("Failed to create Gemini Client:", e);

@@ -1,16 +1,12 @@
+
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
 
-// Additional safety mapping in case window.process is used later
+// Additional safety check
 if (typeof window !== 'undefined') {
   // @ts-ignore
   window.process = window.process || { env: {} };
-  // @ts-ignore
-  if (import.meta && import.meta.env) {
-    // @ts-ignore
-    window.process.env = { ...window.process.env, ...import.meta.env };
-  }
 }
 
 const rootElement = document.getElementById('root');
@@ -18,9 +14,21 @@ if (!rootElement) {
   throw new Error("Could not find root element to mount to");
 }
 
-const root = ReactDOM.createRoot(rootElement);
-root.render(
-  <React.StrictMode>
-    <App />
-  </React.StrictMode>
-);
+try {
+  const root = ReactDOM.createRoot(rootElement);
+  root.render(
+    <React.StrictMode>
+      <App />
+    </React.StrictMode>
+  );
+} catch (error: any) {
+  // If the app crashes during mount, display the error on screen
+  document.body.innerHTML = `
+    <div style="padding: 20px; color: red; font-family: sans-serif;">
+      <h1>Application Error</h1>
+      <p>Failed to mount application.</p>
+      <pre style="background: #f0f0f0; padding: 10px; border-radius: 5px;">${error?.message || error}</pre>
+    </div>
+  `;
+  console.error("Mount Error:", error);
+}
